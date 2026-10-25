@@ -44,10 +44,23 @@ export const zoneRect = (z: Zone, vw: number, workH: number): Rect => ({
   h: Math.round(z.h * workH),
 });
 
-export function useWindowManager(vw: number, workH: number) {
-  const [wins, setWins] = useState<WinState[]>([]);
+const topZ = (list: WinState[]) => Math.max(0, ...list.map((w) => w.z));
 
-  const topZ = (list: WinState[]) => Math.max(0, ...list.map((w) => w.z));
+// New window at its default size, centred and cascaded after any already open.
+function createWin(id: AppId, list: WinState[], vw: number, workH: number, arg?: string): WinState {
+  const { size } = appById(id);
+  const w = Math.min(size.w, vw - 40);
+  const h = Math.min(size.h, workH - 40);
+  const step = (list.length % 5) * 28;
+  const x = Math.max(8, Math.round((vw - w) / 2) - 60 + step);
+  const y = Math.max(8, Math.round((workH - h) / 2) - 30 + step);
+  return { id, arg, z: topZ(list) + 1, mode: "normal", wasMax: false, rect: { x, y, w, h }, restore: null, minTo: null };
+}
+
+export function useWindowManager(vw: number, workH: number, initial: AppId[] = []) {
+  const [wins, setWins] = useState<WinState[]>(() =>
+    initial.reduce<WinState[]>((list, id) => [...list, createWin(id, list, vw, workH)], [])
+  );
 
   const focus = useCallback((id: AppId) => {
     setWins((list) => {
@@ -66,13 +79,7 @@ export function useWindowManager(vw: number, workH: number) {
             w.id === id ? { ...w, z, arg: arg ?? w.arg, mode: w.mode === "min" ? (w.wasMax ? "max" : "normal") : w.mode } : w
           );
         }
-        const { size } = appById(id);
-        const w = Math.min(size.w, vw - 40);
-        const h = Math.min(size.h, workH - 40);
-        const step = (list.length % 5) * 28;
-        const x = Math.max(8, Math.round((vw - w) / 2) - 60 + step);
-        const y = Math.max(8, Math.round((workH - h) / 2) - 30 + step);
-        return [...list, { id, arg, z, mode: "normal", wasMax: false, rect: { x, y, w, h }, restore: null, minTo: null }];
+        return [...list, createWin(id, list, vw, workH, arg)];
       });
     },
     [vw, workH]

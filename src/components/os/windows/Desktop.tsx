@@ -21,7 +21,8 @@ import { Window } from "./Window";
 
 export function Desktop({ onRestart }: { onRestart: () => void }) {
   const viewport = useViewport();
-  const wm = useWindowManager(viewport.w, viewport.workH);
+  // Recruiters land on About; mobile starts on the home screen instead.
+  const wm = useWindowManager(viewport.w, viewport.workH, ["about"]);
   const [flyout, setFlyout] = useState<FlyoutId>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
